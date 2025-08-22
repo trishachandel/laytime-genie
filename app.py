@@ -12,7 +12,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        # Save uploaded file
+       
         file = request.files["file"]
         if file.filename == "":
             return render_template("index.html", error="No file selected")
@@ -29,18 +29,18 @@ def analyze(filename):
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     df = pd.read_csv(filepath)
 
-    # Ensure proper datetime format
+   
     df["Start"] = pd.to_datetime(df["Start"])
     df["End"] = pd.to_datetime(df["End"])
 
-    # Calculate duration (in hours)
+   
     df["Duration (hrs)"] = (df["End"] - df["Start"]).dt.total_seconds() / 3600
 
-    # Used vs Excluded
+   
     used_time = df[df["Type"].str.lower() == "used"]["Duration (hrs)"].sum()
     excluded_time = df[df["Type"].str.lower() == "excluded"]["Duration (hrs)"].sum()
 
-    # Allowed laytime (hardcoded for now, could add form input)
+    
     allowed = 72
     result = None
     extra, saved = 0, 0
@@ -51,7 +51,7 @@ def analyze(filename):
         saved = allowed - used_time
         result = f"✅ Despatch: Laytime saved {saved:.2f} hours."
 
-    # Timeline chart
+   
     fig = px.timeline(
         df,
         x_start="Start",
