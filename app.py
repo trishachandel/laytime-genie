@@ -1,23 +1,33 @@
-import streamlit as st
+from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
-from datetime import datetime
 import plotly.express as px
+import plotly.io as pio
+import os
+from datetime import datetime
 
-st.set_page_config(page_title="Laytime Genie", layout="wide")
+app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-st.title("⚓ Laytime Genie ⚓")
-st.write("===========शं नो वरुणः===========")
-st.write("Upload a Statement of Facts (SOF) file and calculate Laytime, Demurrage, or Despatch.")
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        # Save uploaded file
+        file = request.files["file"]
+        if file.filename == "":
+            return render_template("index.html", error="No file selected")
+        
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
 
-# File uploader
-uploaded_file = st.file_uploader("📂 Upload SOF (CSV format)", type=["csv"])
+        return redirect(url_for("analyze", filename=file.filename))
 
-if uploaded_file:
-    # Read the CSV
-    df = pd.read_csv(uploaded_file)
+    return render_template("index.html")
 
-    st.subheader("📑 Uploaded SOF Data")
-    st.dataframe(df)
+@app.route("/analyze/<filename>")
+def analyze(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    df = pd.read_csv(filepath)
 
     # Ensure proper datetime format
     df["Start"] = pd.to_datetime(df["Start"])
@@ -26,27 +36,22 @@ if uploaded_file:
     # Calculate duration (in hours)
     df["Duration (hrs)"] = (df["End"] - df["Start"]).dt.total_seconds() / 3600
 
-    # Separate Used vs Excluded
+    # Used vs Excluded
     used_time = df[df["Type"].str.lower() == "used"]["Duration (hrs)"].sum()
     excluded_time = df[df["Type"].str.lower() == "excluded"]["Duration (hrs)"].sum()
 
-    st.subheader("📊 Calculations")
-    st.write(f"⏳ **Total Used Laytime:** {used_time:.2f} hours")
-    st.write(f"🚫 **Excluded Time:** {excluded_time:.2f} hours")
-
-    # Allowed Laytime input
-    allowed = st.number_input("Enter Allowed Laytime (in hours)", min_value=1, value=72)
-
-    # Compare
+    # Allowed laytime (hardcoded for now, could add form input)
+    allowed = 72
+    result = None
+    extra, saved = 0, 0
     if used_time > allowed:
         extra = used_time - allowed
-        st.error(f"⚠️ Demurrage: Laytime exceeded by {extra:.2f} hours.")
+        result = f"⚠️ Demurrage: Laytime exceeded by {extra:.2f} hours."
     else:
         saved = allowed - used_time
-        st.success(f"✅ Despatch: Laytime saved {saved:.2f} hours.")
+        result = f"✅ Despatch: Laytime saved {saved:.2f} hours."
 
-    # 📈 Timeline visualization
-    st.subheader("📈 Event Timeline")
+    # Timeline chart
     fig = px.timeline(
         df,
         x_start="Start",
@@ -56,6 +61,18 @@ if uploaded_file:
         title="SOF Event Timeline",
         labels={"Event": "Operation", "Type": "Category"},
     )
+    fig.update_yaxes(autorange="reversed")
+    chart_html = pio.to_html(fig, full_html=False)
 
-    fig.update_yaxes(autorange="reversed")  # Gantt chart style
-    st.plotly_chart(fig, use_container_width=True)
+    return render_template(
+        "result.html",
+        tables=[df.to_html(classes="table table-bordered", index=False)],
+        used_time=used_time,
+        excluded_time=excluded_time,
+        result=result,
+        chart_html=chart_html,
+    )
+
+if __name__ == "__main__":
+    app.run(debug=True)
+

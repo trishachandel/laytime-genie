@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laytime Genie Results</title>
+</head>
+<body>
+    <h1>📊 Laytime Calculation Results</h1>
+
+    <h3>Uploaded SOF Data</h3>
+    {{ tables|safe }}
+
+    <h3>📊 Calculations</h3>
+    <p>⏳ Total Used Laytime: {{ used_time }} hours</p>
+    <p>🚫 Excluded Time: {{ excluded_time }} hours</p>
+    <p><b>{{ result }}</b></p>
+
+    <h3>📈 Event Timeline</h3>
+    {{ chart_html|safe }}
+
+    <br><a href="/">⬅ Back to Home</a>
+</body>
+</html>

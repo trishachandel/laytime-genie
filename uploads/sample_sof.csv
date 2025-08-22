@@ -1,0 +1,5 @@
+Event,Start,End,Type
+Vessel Arrived,2025-08-01 09:15,2025-08-01 10:00,Arrival
+Commenced Loading,2025-08-01 10:00,2025-08-02 18:00,Loading
+Completed Loading,2025-08-02 18:00,2025-08-02 20:00,Loading
+Vessel Sailed,2025-08-02 20:00,2025-08-02 20:00,Departure
